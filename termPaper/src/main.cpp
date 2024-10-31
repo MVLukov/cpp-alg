@@ -3,6 +3,7 @@ using namespace std;
 #include <iostream>
 #include <array>
 #include <string.h>
+#include <vector>
 
 typedef struct Node
 {
@@ -11,7 +12,7 @@ typedef struct Node
     Node *next;
 } Node;
 
-array<string, 3> readPolynomial()
+vector<string> readPolynomial()
 {
     string input = "";
 
@@ -22,7 +23,7 @@ array<string, 3> readPolynomial()
 
     int start = 0;
     int countArgs = 0;
-    array<string, 3> arr = {};
+    vector<string> arr = {};
 
     for (size_t i = 0; i < input.length(); i++)
     {
@@ -30,7 +31,8 @@ array<string, 3> readPolynomial()
 
         if (ch == '-' && i > 0)
         {
-            arr[countArgs] = input.substr(start, i - start);
+            string substr = input.substr(start, i - start);
+            arr.push_back(substr);
             // cout << "START: " << start << " End: " << i << " ARGS: " << countArgs << endl;
             // cout << "ARGS: " << input.substr(start, i - start) << endl;
             start = i;
@@ -39,7 +41,8 @@ array<string, 3> readPolynomial()
 
         if (ch == '+')
         {
-            arr[countArgs] = input.substr(start, i - start);
+            string substr = input.substr(start, i - start);
+            arr.push_back(substr);
             // cout << "START: " << start << " End: " << i << " ARGS: " << countArgs << endl;
             // cout << "ARGS: " << input.substr(start, i - start) << endl;
             start = i + 1;
@@ -49,7 +52,8 @@ array<string, 3> readPolynomial()
         if (i == input.length() - 1)
         {
             // cout << "START: " << start << " End: " << input.length() - 1 << " ARGS: " << countArgs << endl;
-            arr[countArgs] = input.substr(start, input.length() - start);
+            string substr = input.substr(start, input.length() - start);
+            arr.push_back(substr);
         }
     }
 
@@ -120,10 +124,12 @@ void appendToLinkedList(Node *h, Node *n)
 Node *createLinkedList()
 {
     Node *head = NULL;
-    array<string, 3> polynomal = readPolynomial();
+    vector<string> polynomal = readPolynomial();
 
-    for (size_t i = 0; i < 3; i++)
+    for (size_t i = 0; i < polynomal.size(); i++)
     {
+        // cout << polynomal[i] << endl;
+
         if (!polynomal[i].empty())
         {
             Node *newNode = createNode(polynomal[i]);
@@ -140,6 +146,43 @@ Node *createLinkedList()
     }
 
     return head;
+}
+
+void sortNodesByPower(Node *head)
+{
+    if (head == NULL || head->next == NULL)
+    {
+        return; // List is empty or has only one node
+    }
+
+    Node *current;
+    Node *nextNode;
+    int swapped;
+
+    do
+    {
+        swapped = 0;
+        current = head;
+
+        while (current->next != NULL)
+        {
+            nextNode = current->next;
+
+            if (current->power < nextNode->power)
+            {
+                // Swap coefficients and powers
+                int tempCoeff = current->coefficient;
+                int tempPower = current->power;
+                current->coefficient = nextNode->coefficient;
+                current->power = nextNode->power;
+                nextNode->coefficient = tempCoeff;
+                nextNode->power = tempPower;
+
+                swapped = 1;
+            }
+            current = current->next;
+        }
+    } while (swapped);
 }
 
 void traverseLinkedList(Node *head)
@@ -162,7 +205,7 @@ void getPolynomial(Node *head)
     {
         if (count == 0)
         {
-            if (curr->power == 2)
+            if (curr->power >= 2)
             {
                 cout << curr->coefficient << "x^" << curr->power;
             }
@@ -181,7 +224,7 @@ void getPolynomial(Node *head)
         {
             if (curr->coefficient >= 0)
             {
-                if (curr->power == 2)
+                if (curr->power >= 2)
                 {
                     cout << "+" << curr->coefficient << "x^" << curr->power;
                 }
@@ -198,7 +241,7 @@ void getPolynomial(Node *head)
             }
             else
             {
-                if (curr->power == 2)
+                if (curr->power >= 2)
                 {
                     cout << curr->coefficient << "x^" << curr->power;
                 }
@@ -221,61 +264,44 @@ void getPolynomial(Node *head)
     cout << endl;
 }
 
-void convertPolynomialToFull(Node *&head)
+void convertPolynomialToFull(Node *head)
 {
-    bool arr[3] = {false, false, false};
-
     Node *curr = head;
 
-    if (head->next != NULL)
+    while (curr != NULL)
     {
-        while (curr != NULL)
+        if (curr->next != NULL)
         {
-            arr[curr->power] = true;
-            curr = curr->next;
-        }
-    }
-    else
-    {
-        arr[head->power] = true;
-    }
+            int diffPower = curr->power - curr->next->power;
 
-    // arg 0 is x^0, arg 1 is x^1, arg 2 is x^2
-    int missingArg = 0;
-
-    for (int i = 2; i >= 0; i--)
-    {
-        if (arr[i] == false)
-        {
-            if (i == 2)
+            for (int i = 0; i < diffPower - 1; i++)
             {
                 Node *newNode = new Node{};
+
                 newNode->coefficient = 0;
-                newNode->power = 2;
+                newNode->power = curr->power - 1;
+                newNode->next = curr->next;
 
-                newNode->next = head;
-                head = newNode;
-            }
-
-            if (i == 1)
-            {
-                Node *newNode = new Node{};
-                newNode->coefficient = 0;
-                newNode->power = 1;
-
-                newNode->next = head->next;
-                head->next = newNode;
-            }
-
-            if (i == 0)
-            {
-                Node *newNode = new Node{};
-                newNode->coefficient = 0;
-                newNode->power = 0;
-
-                head->next->next = newNode;
+                curr->next = newNode;
+                curr = newNode;
             }
         }
+        else
+        {
+            while (curr->power != 0)
+            {
+                Node *newNode = new Node{};
+
+                newNode->coefficient = 0;
+                newNode->power = curr->power - 1;
+                newNode->next = curr->next;
+
+                curr->next = newNode;
+                curr = newNode;
+            }
+        }
+
+        curr = curr->next;
     }
 }
 
@@ -283,17 +309,12 @@ int main()
 {
     Node *poly1 = createLinkedList();
 
-    cout << endl
-         << "TRAVERSE BEFORE CONVERT" << endl;
-    traverseLinkedList(poly1);
-    getPolynomial(poly1);
-
+    sortNodesByPower(poly1);
     convertPolynomialToFull(poly1);
 
     cout << endl
          << "TRAVERSE AFTER CONVERT" << endl;
     traverseLinkedList(poly1);
-
     getPolynomial(poly1);
 
     return 0;
